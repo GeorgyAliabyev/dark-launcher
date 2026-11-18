@@ -16,13 +16,15 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
-      # compileSdk 37 is newer than the runner's preinstalled platform list.
+      # The runner image ships the Android SDK and cmdline-tools already;
+      # android-actions/setup-android fails on it (it asks for the retired "tools" package).
+      # Only the newer platform/build-tools are missing.
       - name: Install SDK platform 37
         run: |
-          yes | sdkmanager --licenses > /dev/null
-          sdkmanager "platforms;android-37" "build-tools;37.0.0"
+          set -x
+          SDKMANAGER=$(command -v sdkmanager || find "$ANDROID_HOME" -name sdkmanager -type f | head -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-37" "build-tools;37.0.0"
 
       - name: Build debug APK
         run: |
