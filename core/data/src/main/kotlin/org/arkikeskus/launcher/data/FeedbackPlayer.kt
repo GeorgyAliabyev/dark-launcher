@@ -66,29 +66,56 @@ class FeedbackPlayer @Inject constructor(
     @Volatile
     private var settings = LauncherSettings()
 
+    /** Sample ids the pool has finished decoding; a play for an id missing here waits for the decode. */
+    private val loadedIds = HashSet<Int>()
+
+    /** The event whose sound was asked for before its sample finished decoding. */
+    @Volatile
+    private var pending: FeedbackEvent? = null
+
     private val pool: SoundPool = SoundPool.Builder()
         .setMaxStreams(MAX_STREAMS)
         .setAudioAttributes(
+            // The multimedia stream, so the launcher's own sounds are exactly as loud as everything
+            // else the person plays. On the sonification stream they ignored the media volume and
+            // came out far too loud (owner, 18.11).
             AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build(),
         )
         .build()
 
+    /**
+     * One sound per event, except the drawer opening: that one is deliberately silent — the panel
+     * greets with a short vibration and its name spoken, never a sound (owner, 18.11).
+     */
     private val sounds: Map<FeedbackEvent, Int> =
         mapOf(
             FeedbackEvent.Select to pool.load(context, R.raw.feedback_select, 1),
             FeedbackEvent.Place to pool.load(context, R.raw.feedback_place, 1),
             FeedbackEvent.Confirm to pool.load(context, R.raw.feedback_confirm, 1),
             FeedbackEvent.FolderCreate to pool.load(context, R.raw.feedback_folder_create, 1),
-            FeedbackEvent.DrawerOpen to pool.load(context, R.raw.feedback_folder_open, 1),
             FeedbackEvent.FolderOpen to pool.load(context, R.raw.feedback_folder_open, 1),
             FeedbackEvent.Move to pool.load(context, R.raw.feedback_move, 1),
             FeedbackEvent.Delete to pool.load(context, R.raw.feedback_delete, 1),
             FeedbackEvent.FolderDelete to pool.load(context, R.raw.feedback_delete, 1),
             FeedbackEvent.Error to pool.load(context, R.raw.feedback_error, 1),
         )
+
+    init {
+        // Decoding is asynchronous: a tick asked for in the first moments after the launcher starts
+        // used to be dropped on the floor. Now the first one waits for its sample and plays then.
+        pool.setOnLoadCompleteListener { _, sampleId, status ->
+            if (status != 0) return@setOnLoadCompleteListener
+            loadedIds.add(sampleId)
+            val waiting = pending ?: return@setOnLoadCompleteListener
+            if (sounds[waiting] == sampleId) {
+                pending = null
+                pool.play(sampleId, VOLUME, VOLUME, 1, 0, 1f)
+            }
+        }
+    }
 
     private val vibrator: Vibrator? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -150,8 +177,13 @@ class FeedbackPlayer @Inject constructor(
     }
 
     private fun playSound(event: FeedbackEvent) {
+        // No entry = this event has no sound by design (the drawer opening).
         val id = sounds[event] ?: return
         if (id == 0) return
+        if (id !in loadedIds) {
+            pending = event
+            return
+        }
         pool.play(id, VOLUME, VOLUME, 1, 0, 1f)
     }
 
@@ -196,7 +228,7 @@ class FeedbackPlayer @Inject constructor(
         )
 
         const val MAX_STREAMS = 3
-        const val VOLUME = 0.9f
+        const val VOLUME = 0.8f
         const val HALF_AMPLITUDE = 90
         const val DEFAULT_AMPLITUDE = 150
         const val UTTERANCE_ID = "dark-launcher-feedback"

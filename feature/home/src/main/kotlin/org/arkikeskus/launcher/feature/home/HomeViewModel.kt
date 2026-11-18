@@ -594,6 +594,7 @@ class HomeViewModel @Inject constructor(
             if (!shortcutIconStaysAfterRemoval(removed.removedShortcutId, removed)) {
                 customIcons.setShortcutIcon(ShortcutIconKey.of(removed.packageName, removed.removedShortcutId, removed.userSerial), null)
             }
+            feedback.play(FeedbackEvent.Delete)
         }
     }
 
@@ -666,7 +667,10 @@ class HomeViewModel @Inject constructor(
     }
 
     /** Removes a placed widget row (caller frees the host id). */
-    fun removeWidget(rowId: Long) = viewModelScope.launch { homeLayoutRepository.removeWidget(rowId) }
+    fun removeWidget(rowId: Long) = viewModelScope.launch {
+        homeLayoutRepository.removeWidget(rowId)
+        feedback.play(FeedbackEvent.Delete)
+    }
 
     /** Turns bound widget rows whose id this device's host never allocated back into placeholders
      *  (the Google Auto Backup / device-transfer restore path — see HomeScreen's startup sweep). */
@@ -681,21 +685,31 @@ class HomeViewModel @Inject constructor(
     suspend fun boundWidgetIds(): Set<Int> = homeLayoutRepository.boundWidgetIds()
 
     /** The dock's shown slots in their new order; rows the column cap hides keep their place after them. */
-    fun reorderDock(newOrder: List<DockEntry>) =
-        viewModelScope.launch { homeLayoutRepository.reorderDock(newOrder.map { it.rowId }) }
+    fun reorderDock(newOrder: List<DockEntry>) = viewModelScope.launch {
+        homeLayoutRepository.reorderDock(newOrder.map { it.rowId })
+        feedback.play(FeedbackEvent.Move)
+    }
 
-    fun removeFromHome(appItem: AppItem) =
-        viewModelScope.launch { homeLayoutRepository.removeFromHome(appItem) }
+    fun removeFromHome(appItem: AppItem) = viewModelScope.launch {
+        homeLayoutRepository.removeFromHome(appItem)
+        feedback.play(FeedbackEvent.Delete)
+    }
 
-    fun addToDock(appItem: AppItem) =
-        viewModelScope.launch { homeLayoutRepository.addToDock(appItem) }
+    fun addToDock(appItem: AppItem) = viewModelScope.launch {
+        homeLayoutRepository.addToDock(appItem)
+        feedback.play(FeedbackEvent.Place)
+    }
 
     /** A drawer icon dropped between dock tiles at [index] (counted over the shown slots). */
-    fun addToDockAt(appItem: AppItem, index: Int) =
-        viewModelScope.launch { homeLayoutRepository.addToDockAt(appItem, index, shownDockKeys()) }
+    fun addToDockAt(appItem: AppItem, index: Int) = viewModelScope.launch {
+        homeLayoutRepository.addToDockAt(appItem, index, shownDockKeys())
+        feedback.play(FeedbackEvent.Place)
+    }
 
-    fun removeFromDock(appItem: AppItem) =
-        viewModelScope.launch { homeLayoutRepository.removeFromDock(appItem) }
+    fun removeFromDock(appItem: AppItem) = viewModelScope.launch {
+        homeLayoutRepository.removeFromDock(appItem)
+        feedback.play(FeedbackEvent.Delete)
+    }
 
     /** The keys the dock shows (its rows that resolve), for a drop index counted over shown slots. */
     private suspend fun shownDockKeys(): Set<String> = appRepository.apps.first().mapTo(HashSet()) { it.key }
@@ -723,15 +737,21 @@ class HomeViewModel @Inject constructor(
     /** A home folder dropped between dock tiles at [index]. */
     fun moveFolderToDock(folderId: Long, index: Int) = viewModelScope.launch {
         withContext(NonCancellable) { homeLayoutRepository.moveFolderToDock(folderId, index, shownDockKeys()) }
+        feedback.play(FeedbackEvent.Move)
     }
 
     /** A dock folder dropped on a home cell; false (nothing changed) unless the cell is free. */
     suspend fun moveDockFolderToHome(folderId: Long, page: Int, cellX: Int, cellY: Int): Boolean =
         homeLayoutRepository.moveDockFolderToHome(folderId, page, cellX, cellY)
+            .also { if (it) feedback.play(FeedbackEvent.Move) }
 
     fun addToHome(appItem: AppItem) = viewModelScope.launch {
         val s = settingsRepository.settings.first()
-        if (!homeLayoutRepository.addToHome(appItem, s.homeColumns, s.homeRows)) notify(HomeNotice.HomeFull)
+        if (homeLayoutRepository.addToHome(appItem, s.homeColumns, s.homeRows)) {
+            feedback.play(FeedbackEvent.Place)
+        } else {
+            notify(HomeNotice.HomeFull)
+        }
     }
 
     /** Queues a notice for the screen; the buffer absorbs a burst while nothing collects yet. */
@@ -761,7 +781,7 @@ class HomeViewModel @Inject constructor(
         val s = settingsRepository.settings.first()
         withContext(NonCancellable) {
             when (homeLayoutRepository.moveDockAppToHome(appItem, page, cellX, cellY, s.homeColumns, s.homeRows, folderName)) {
-                PlaceResult.Placed -> Unit
+                PlaceResult.Placed -> feedback.play(FeedbackEvent.Place)
                 PlaceResult.HomeFull -> notify(HomeNotice.HomeFull)
                 PlaceResult.Blocked -> Unit // the icon snaps back to the dock
             }
@@ -815,6 +835,7 @@ class HomeViewModel @Inject constructor(
      *  (null = last). */
     fun reorderInFolder(folderId: Long, appItem: AppItem, before: AppItem?) = viewModelScope.launch {
         homeLayoutRepository.moveWithinFolder(folderId, appItem, before)
+        feedback.play(FeedbackEvent.Move)
     }
 
     /** Cross-surface: an app dragged out of its open folder onto a home cell — placed with the same
@@ -827,7 +848,11 @@ class HomeViewModel @Inject constructor(
                 val result = homeLayoutRepository.moveOutOfFolderTo(
                     appItem, folderId, page, cellX, cellY, s.homeColumns, s.homeRows, folderName,
                 )
-                if (result == PlaceResult.HomeFull) notify(HomeNotice.HomeFull)
+                when (result) {
+                    PlaceResult.Placed -> feedback.play(FeedbackEvent.Place)
+                    PlaceResult.HomeFull -> notify(HomeNotice.HomeFull)
+                    PlaceResult.Blocked -> Unit // the app stays in the folder
+                }
             }
         }
 
@@ -836,6 +861,7 @@ class HomeViewModel @Inject constructor(
      *  ViewModel clear can't strand it). */
     fun moveFolderAppToDock(appItem: AppItem, folderId: Long, index: Int? = null) = viewModelScope.launch {
         withContext(NonCancellable) { homeLayoutRepository.moveChildToDock(appItem, folderId, index, shownDockKeys()) }
+        feedback.play(FeedbackEvent.Move)
     }
 
     /** An app dragged out of its open folder onto the remove pill: it leaves the home screen entirely. */
