@@ -38,6 +38,7 @@
     <string name="feedback_app_placed">Placed</string>
     <string name="feedback_confirmed">Done</string>
     <string name="feedback_folder_created">Folder created</string>
+    <string name="feedback_drawer_opened">App drawer</string>
     <string name="feedback_folder_opened">Folder opened</string>
     <string name="feedback_app_moved">Moved</string>
     <string name="feedback_deleted">Deleted</string>

@@ -38,6 +38,7 @@
     <string name="feedback_app_placed">Размещено</string>
     <string name="feedback_confirmed">Готово</string>
     <string name="feedback_folder_created">Папка создана</string>
+    <string name="feedback_drawer_opened">Панель приложений</string>
     <string name="feedback_folder_opened">Папка открыта</string>
     <string name="feedback_app_moved">Перемещено</string>
     <string name="feedback_deleted">Удалено</string>

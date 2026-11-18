@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import org.arkikeskus.launcher.data.DrawerWallpaper
 import org.arkikeskus.launcher.data.DrawerWallpaperStore
+import org.arkikeskus.launcher.data.FeedbackEvent
+import org.arkikeskus.launcher.data.FeedbackPlayer
 import org.arkikeskus.launcher.data.LauncherAppsSource
 import org.arkikeskus.launcher.data.NotificationBadgeRepository
 import org.arkikeskus.launcher.data.SettingsRepository
@@ -58,6 +60,7 @@ class LauncherShellViewModel @Inject constructor(
     launcherAppsSource: LauncherAppsSource,
     notificationBadgeRepository: NotificationBadgeRepository,
     drawerWallpaper: DrawerWallpaperStore,
+    private val feedback: FeedbackPlayer,
 ) : ViewModel() {
     /** A heads-up notification's bar reveal is on: home blanks its own status bar for the window (see
      *  [NotificationBadgeRepository.headsUpActive]), so the bar is no dark backing for the glyphs then. */
@@ -69,6 +72,13 @@ class LauncherShellViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IconStyle())
 
     val iconEpochs: StateFlow<IconEpochs> = launcherAppsSource.iconEpochs
+
+    /**
+     * The drawer has settled into place: the short vibration and the words "App drawer" go out the way
+     * the person set the signals (sounds, vibration, speech). Nothing here while the finger still moves
+     * the drawer — [LauncherShell] calls this once the open has settled, not when it starts.
+     */
+    fun announceDrawerOpened() = feedback.play(FeedbackEvent.DrawerOpen)
 
     /** The status-bar settings the system bars' glyph colour depends on (see SystemBarContrast). */
     val statusBars: StateFlow<StatusBarSettings> = settingsRepository.settings

@@ -1158,16 +1158,17 @@ fun HomeScreen(
  * flicks under-settle and snap shut).
  */
 /** The least a finger must travel vertically from the dock before the drawer takes the gesture: more than
- *  a drift during a long-press, less than a deliberate flick. */
-internal val DOCK_SWIPE_MIN_TRAVEL = 20.dp
+ *  a drift during a long-press, less than a deliberate flick. 20dp refused a natural flick that leaned a
+ *  little, which read as the drawer "sometimes not opening" (owner, Samsung home as the benchmark). */
+internal val DOCK_SWIPE_MIN_TRAVEL = 14.dp
 
 /** The vertical slop for a swipe that starts on the dock: twice home's [touchSlop], at least
  *  [DOCK_SWIPE_MIN_TRAVEL] ([minTravelPx]). */
 internal fun dockSwipeSlop(touchSlop: Float, minTravelPx: Float): Float = maxOf(2f * touchSlop, minTravelPx)
 
 /** A gesture from the dock counts as the drawer's (or the shade's) only once it is clearly vertical: past
- *  [slop] and at least twice as far up or down as sideways. A sideways pull is the dock's own. */
-internal fun dockSwipeIsVertical(dx: Float, dy: Float, slop: Float): Boolean = abs(dy) > slop && abs(dy) > 2f * abs(dx)
+ *  [slop] and half again as far up or down as sideways. A sideways pull is the dock's own. */
+internal fun dockSwipeIsVertical(dx: Float, dy: Float, slop: Float): Boolean = abs(dy) > slop && abs(dy) > 1.5f * abs(dx)
 
 /** The vertical travel a swipe from an icon with a swipe action of its own needs: [touchSlop] times the
  *  "Icon swipe distance" setting ([distance]), never under the slop that applies there anyway

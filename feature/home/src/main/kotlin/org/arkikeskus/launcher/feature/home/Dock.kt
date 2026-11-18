@@ -43,11 +43,16 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import org.arkikeskus.launcher.R
 import org.arkikeskus.launcher.model.AppItem
 import org.arkikeskus.launcher.ui.DockTarget
 import org.arkikeskus.launcher.ui.DragSource
@@ -57,6 +62,7 @@ import org.arkikeskus.launcher.ui.IconPressOutcome
 import org.arkikeskus.launcher.ui.appLaunchTouch
 import org.arkikeskus.launcher.ui.awaitIconPress
 import org.arkikeskus.launcher.ui.component.AppIcon
+import org.arkikeskus.launcher.ui.component.AppTileAction
 import org.arkikeskus.launcher.ui.component.LocalAppLabelLines
 import org.arkikeskus.launcher.ui.component.LocalIconScale
 import org.arkikeskus.launcher.ui.component.iconSizeForCell
@@ -224,6 +230,7 @@ fun Dock(
                         dragController = dragController, haptics = haptics,
                         rowWidthPx = { rowWidthPx }, itemRoots = itemRoots, latestEntries = { latestEntries },
                         onAppClick = onAppClick, onAppMenu = onAppMenu,
+                        onRemoveFromDock = onRemoveFromDock,
                         onLift = { token -> liftToken = token; draggingIndex = index; dragOffsetX = 0f },
                         onDragX = { dx -> dragOffsetX += dx },
                         onDropped = { rootPos, app, current ->
@@ -324,6 +331,7 @@ private fun RowScope.DockAppSlot(
     latestEntries: () -> List<DockEntry>,
     onAppClick: (AppItem) -> Unit,
     onAppMenu: (AppItem, IntOffset) -> Unit,
+    onRemoveFromDock: (AppItem) -> Unit,
     onLift: (token: Any) -> Unit,
     onDragX: (Float) -> Unit,
     onDropped: (rootPos: Offset, app: AppItem, current: List<DockEntry>) -> Unit,
@@ -337,6 +345,12 @@ private fun RowScope.DockAppSlot(
     val currentApp by rememberUpdatedState(app)
     val currentOnDropped by rememberUpdatedState(onDropped)
     val slotCount = latestEntries().size
+    // The same anchor the hold opens the menu at, for the screen-reader action: the top of the icon.
+    val openMenu = {
+        val root = itemRoots[index] ?: Offset.Zero
+        val slotWidth = if (slotCount > 0) rowWidthPx().toFloat() / slotCount else 0f
+        onAppMenu(currentApp, IntOffset((root.x + slotWidth / 2f).roundToInt(), root.y.roundToInt()))
+    }
     Box(
         modifier = slot
             .appLaunchTouch(app, launchOrigin)
@@ -466,6 +480,15 @@ private fun RowScope.DockAppSlot(
             badgeCount = badges[app.badgeKey] ?: 0,
             badgeShowCount = badgeShowCount,
             badgeScale = badgeScale,
+            // One spoken stop per dock icon: a button with the app's name, the tap,
+            // the hold and the swipe-down actions (owner, 18.11).
+            tileClick = { onAppClick(currentApp) },
+            tileClickLabel = stringResource(R.string.tile_open),
+            tileLongClick = openMenu,
+            tileLongClickLabel = stringResource(R.string.tile_app_menu),
+            tileActions = if (locked) emptyList() else listOf(
+                AppTileAction(stringResource(R.string.dock_remove)) { onRemoveFromDock(currentApp) },
+            ),
         )
     }
 }
@@ -502,11 +525,16 @@ private fun RowScope.DockFolderSlot(
         currentOnOpenAt(it, iconPlace.value?.takeIf { place -> place.isAttached }?.boundsInRoot() ?: Rect.Zero)
     }
     val currentOnDropped by rememberUpdatedState(onDropped)
+    val openLabel = stringResource(R.string.tile_open)
     Box(
         modifier = slot
-            // One node for accessibility services, named by the icon's description, whose click
-            // opens the folder: the pointer gesture below never reaches them.
-            .semantics(mergeDescendants = true) { onClick { currentOnOpen(currentFolder); true } }
+            // One node for accessibility services: a button named by the folder, whose click
+            // opens it — the pointer gesture below never reaches them.
+            .semantics(mergeDescendants = true) {
+                contentDescription = folder.name
+                role = Role.Button
+                onClick(label = openLabel) { currentOnOpen(currentFolder); true }
+            }
             // The home grid's folder gesture: tap / still hold opens, a hold then a pull lifts the
             // folder into the shared controller for a move (reorder here, a free home cell, the
             // remove pill for a folder that shows no apps). The press phase follows the icons' rule.

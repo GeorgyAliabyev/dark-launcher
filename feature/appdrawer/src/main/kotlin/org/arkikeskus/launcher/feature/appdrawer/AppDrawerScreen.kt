@@ -59,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -84,9 +85,14 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -130,6 +136,7 @@ import org.arkikeskus.launcher.ui.LongPressDelay
 import org.arkikeskus.launcher.ui.PopupAction
 import org.arkikeskus.launcher.ui.R as UiR
 import org.arkikeskus.launcher.ui.component.AppIcon
+import org.arkikeskus.launcher.ui.component.AppTileAction
 import org.arkikeskus.launcher.ui.component.PickedIcon
 import org.arkikeskus.launcher.ui.component.ContactAvatar
 import org.arkikeskus.launcher.ui.component.iconSizeForCell
@@ -149,6 +156,18 @@ import org.arkikeskus.launcher.ui.expressive.ExpressiveTheme
 import org.arkikeskus.launcher.ui.expressive.LocalExpressivePalette
 import org.arkikeskus.launcher.ui.rememberHomeDragController
 import org.arkikeskus.launcher.ui.expressive.PillShape
+
+/**
+ * What a screen reader's swipe-down can do on a drawer tile. The grid, the popup cards and the frequent
+ * row sit several composables deep, so the calls are handed down as composition locals rather than
+ * threaded through every parameter list. The default does nothing — the tiles outside the screen stay
+ * plain.
+ */
+private val LocalAddAppToHome = staticCompositionLocalOf<(AppItem) -> Unit> { {} }
+private val LocalAddFolderToHome = staticCompositionLocalOf<(DrawerFolderUi) -> Unit> { {} }
+private val LocalRemoveFromHome = staticCompositionLocalOf<(AppItem) -> Unit> { {} }
+/** The apps the home screen already holds, by [AppItem.key]: the tile offers to add, or to remove. */
+private val LocalHomeKeys = staticCompositionLocalOf<Set<String>> { emptySet() }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -284,6 +303,12 @@ fun AppDrawerScreen(
         LocalIconScale provides uiState.iconScale,
         LocalAppLabelLines provides if (uiState.twoLineLabels) 2 else 1,
         LocalDrawerLabelColor provides uiState.labelColor,
+        // Adding to the home screen from anywhere in the drawer: the grid, the folder card, the
+        // frequent row. First free cell, as the tile's own menu does.
+        LocalAddAppToHome provides { app -> viewModel.addToHome(app) },
+        LocalAddFolderToHome provides { folder -> viewModel.addFolderToHomeAt(folder, 0, 0, 0) },
+        LocalRemoveFromHome provides { app -> viewModel.removeFromHome(app) },
+        LocalHomeKeys provides uiState.homeKeys,
     ) {
     // What the drawer paints over what is behind it (DrawerSurface.kt): the user's colour at its opacity, nothing for
     // "Transparent", or a black dim over the user's own picture; its text black or white to match what the drawer
@@ -981,16 +1006,30 @@ private fun DrawerFolderTile(
     var bounds by remember(folder.id) { mutableStateOf(Rect.Zero) }
     var origin by remember(folder.id) { mutableStateOf(Offset.Zero) }
     val editLabel = stringResource(R.string.folder_edit)
+    val openLabel = stringResource(R.string.tile_open)
+    val addLabel = stringResource(R.string.home_add)
+    val addToHome = LocalAddFolderToHome.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .onGloballyPositioned { bounds = it.boundsInRoot(); origin = it.positionInRoot() }
             // One node for accessibility services with the actions a clickable tile had; the pointer gesture
             // below never reaches them. The hold's label is what TalkBack reads for it: the editor has no
-            // other way in.
-            .semantics(mergeDescendants = true) {
-                onClick { currentOnClick(bounds); true }
+            // other way in. Everything inside is cleared so the 2×2 preview's four icons are not read as
+            // separate stops and the tile is a button, not an image or a heading.
+            .clearAndSetSemantics {
+                contentDescription = folder.name
+                role = Role.Button
+                onClick(label = openLabel) { currentOnClick(bounds); true }
                 onLongClick(label = editLabel) { currentOnLongClick(); true }
+                if (!locked) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(addLabel) {
+                            addToHome(folder)
+                            true
+                        },
+                    )
+                }
             }
             // And for a keyboard or a D-pad, which the pointer gesture below does not answer either: the tile
             // takes focus, Enter opens the card and the key held down the editor.
@@ -1196,6 +1235,14 @@ private fun DrawerFolderCard(
     // The drawer's palette (the user's colour) for the card AND its texts: the popup is its own window, where the
     // system palette would otherwise paint a light card under this palette's light text (round 11).
     val palette = LocalExpressivePalette.current
+    // What a screen reader gets on the card's app icons: the same set the grid's cells carry.
+    val openLabel = stringResource(R.string.tile_open)
+    val menuLabel = stringResource(R.string.tile_app_menu)
+    val addLabel = stringResource(R.string.add_to_home)
+    val removeLabel = stringResource(R.string.remove_from_home)
+    val homeKeys = LocalHomeKeys.current
+    val addToHome = LocalAddAppToHome.current
+    val removeFromHome = LocalRemoveFromHome.current
     // The card is a window of its own: the long-press delay setting is applied again for its apps' hold.
     AnchoredPopupCard(anchor = anchor, preferAbove = preferAbove, onDismiss = onDismiss, width = width, palette = palette) { LongPressDelay {
         Column(
@@ -1224,6 +1271,14 @@ private fun DrawerFolderCard(
                 Row(Modifier.fillMaxWidth()) {
                     row.forEach { app ->
                         val placed = remember(app.key) { Ref<LayoutCoordinates>() }
+                        // Where the app is at the hold, not where it was laid out: the card scrolls.
+                        val hold: (() -> Unit)? = onAppLongClick?.let { open ->
+                            {
+                                placed.value?.takeIf { it.isAttached }
+                                    ?.let { open(app, it.boundsInRootOf(hostView)) }
+                            }
+                        }
+                        val onHome = app.key in homeKeys
                         AppIcon(
                             appItem = app,
                             labelColor = palette.text,
@@ -1232,19 +1287,24 @@ private fun DrawerFolderCard(
                             badgeCount = badges[app.badgeKey] ?: 0,
                             badgeShowCount = badgeShowCount,
                             badgeScale = badgeScale,
+                            tileClick = { onAppClick(app) },
+                            tileClickLabel = openLabel,
+                            tileLongClick = hold,
+                            tileLongClickLabel = if (hold == null) null else menuLabel,
+                            tileActions = if (hold == null) {
+                                emptyList()
+                            } else {
+                                listOf(
+                                    AppTileAction(menuLabel, hold),
+                                    AppTileAction(if (onHome) removeLabel else addLabel) {
+                                        if (onHome) removeFromHome(app) else addToHome(app)
+                                    },
+                                )
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .onGloballyPositioned { placed.value = it }
-                                .cardAppPress(
-                                    onClick = { onAppClick(app) },
-                                    // Where the app is at the hold, not where it was laid out: the card scrolls.
-                                    onLongClick = onAppLongClick?.let { open ->
-                                        {
-                                            placed.value?.takeIf { it.isAttached }
-                                                ?.let { open(app, it.boundsInRootOf(hostView)) }
-                                        }
-                                    },
-                                )
+                                .cardAppPress(onClick = { onAppClick(app) }, onLongClick = hold)
                                 .padding(vertical = 10.dp * style.spacing, horizontal = 4.dp),
                         )
                     }
@@ -1464,6 +1524,13 @@ internal fun FrequentAppsCard(
     onAppLongClick: ((AppItem, Rect) -> Unit)?,
 ) {
     val p = LocalExpressivePalette.current
+    val openLabel = stringResource(R.string.tile_open)
+    val menuLabel = stringResource(R.string.tile_app_menu)
+    val addLabel = stringResource(R.string.add_to_home)
+    val removeLabel = stringResource(R.string.remove_from_home)
+    val homeKeys = LocalHomeKeys.current
+    val addToHome = LocalAddAppToHome.current
+    val removeFromHome = LocalRemoveFromHome.current
     Surface(
         color = p.surfaceHi,
         shape = RoundedCornerShape(20.dp),
@@ -1483,6 +1550,8 @@ internal fun FrequentAppsCard(
             Row(modifier = Modifier.fillMaxWidth()) {
                 apps.forEach { app ->
                     var bounds by remember(app.key) { mutableStateOf(Rect.Zero) }
+                    val hold: (() -> Unit)? = onAppLongClick?.let { open -> { open(app, bounds) } }
+                    val onHome = app.key in homeKeys
                     // On the card's own solid surface: the palette's text, not the see-through drawer's.
                     AppIcon(
                         appItem = app,
@@ -1492,13 +1561,24 @@ internal fun FrequentAppsCard(
                         badgeCount = badges[app.badgeKey] ?: 0,
                         badgeShowCount = badgeShowCount,
                         badgeScale = badgeScale,
+                        tileClick = { onAppClick(app) },
+                        tileClickLabel = openLabel,
+                        tileLongClick = hold,
+                        tileLongClickLabel = if (hold == null) null else menuLabel,
+                        tileActions = if (hold == null) {
+                            emptyList()
+                        } else {
+                            listOf(
+                                AppTileAction(menuLabel, hold),
+                                AppTileAction(if (onHome) removeLabel else addLabel) {
+                                    if (onHome) removeFromHome(app) else addToHome(app)
+                                },
+                            )
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .onGloballyPositioned { bounds = it.boundsInRoot() }
-                            .cardAppPress(
-                                onClick = { onAppClick(app) },
-                                onLongClick = onAppLongClick?.let { open -> { open(app, bounds) } },
-                            )
+                            .cardAppPress(onClick = { onAppClick(app) }, onLongClick = hold)
                             .padding(vertical = 4.dp, horizontal = 2.dp),
                     )
                 }
@@ -1582,6 +1662,15 @@ private fun DrawerAppCell(
     // which a cell half scrolled under the grid's top edge still needs for the finger's position.
     var bounds by remember { mutableStateOf(Rect.Zero) }
     var origin by remember { mutableStateOf(Offset.Zero) }
+    // What a screen reader gets on the cell: the tile is a button that opens, the hold opens the app
+    // menu, the swipe-down actions carry the menu and the home-screen copy — none of it needs a finger
+    // on the lift, which is what the pointer gesture below is for.
+    val openLabel = stringResource(R.string.tile_open)
+    val menuLabel = stringResource(R.string.tile_app_menu)
+    val onHome = app.key in LocalHomeKeys.current
+    val homeLabel = stringResource(if (onHome) R.string.remove_from_home else R.string.add_to_home)
+    val addToHome = LocalAddAppToHome.current
+    val removeFromHome = LocalRemoveFromHome.current
     AppIcon(
         appItem = app,
         labelColor = drawerLabelColor(LocalDrawerLabelColor.current, MaterialTheme.colorScheme.onSurface),
@@ -1592,6 +1681,21 @@ private fun DrawerAppCell(
         badgeScale = badgeScale,
         // The lock, and what it says to a screen reader: the space's name, as its search row has it.
         privateMark = if (privateMark) stringResource(R.string.private_space_entry) else null,
+        tileClick = { onAppClick(currentApp) },
+        tileClickLabel = openLabel,
+        tileLongClick = if (locked) null else { { onAppLongClick(currentApp, bounds) } },
+        tileLongClickLabel = if (locked) null else menuLabel,
+        tileActions = when {
+            locked -> emptyList()
+            // A private app is not put on the home screen: only its own menu is offered.
+            privateMark -> listOf(AppTileAction(menuLabel) { onAppLongClick(currentApp, bounds) })
+            else -> listOf(
+                AppTileAction(menuLabel) { onAppLongClick(currentApp, bounds) },
+                AppTileAction(homeLabel) {
+                    if (onHome) removeFromHome(currentApp) else addToHome(currentApp)
+                },
+            )
+        },
         modifier = Modifier
             .onGloballyPositioned { bounds = it.boundsInRoot(); origin = it.positionInRoot() }
             // One unified gesture (like Workspace/Dock) but non-consuming until the

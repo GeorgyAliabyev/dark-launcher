@@ -120,9 +120,21 @@ fun LauncherShell(
     // A drawer icon's Widgets row: the home screen opens its picker on this package once the drawer is away.
     var showWidgetsFor by remember { mutableStateOf<String?>(null) }
 
+    // The drawer's greeting goes out once per opening, when the open is decided — not when the finger
+    // starts moving it. The flag drops with the drawer, so the next opening says it again.
+    var drawerAnnounced by remember { mutableStateOf(false) }
+
+    fun announceDrawerOpen() {
+        if (drawerAnnounced) return
+        drawerAnnounced = true
+        shellViewModel.announceDrawerOpened()
+    }
+
     fun animateProgress(target: Float) {
         isDraggingDrawer = false
         dragJob?.cancel()
+        if (target == 0f) drawerAnnounced = false
+        if (target == 1f) announceDrawerOpen()
         dragJob = scope.launch { progress.animateTo(target, settleSpring) }
     }
 
@@ -149,6 +161,7 @@ fun LauncherShell(
             velocityPxPerSec > flingThreshold -> 0f  // fast down → close
             else -> if (currentVal > 0.4f) 1f else 0f
         }
+        if (target == 1f) announceDrawerOpen() else drawerAnnounced = false
         dragJob?.cancel()
         dragJob = scope.launch {
             progress.snapTo(currentVal)

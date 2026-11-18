@@ -1,6 +1,7 @@
 package org.arkikeskus.launcher.feature.home
 
 import android.appwidget.AppWidgetManager
+import android.widget.Toast
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
@@ -76,6 +77,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.customActions
@@ -119,6 +124,7 @@ import org.arkikeskus.launcher.ui.appLaunchTouch
 import org.arkikeskus.launcher.ui.awaitIconPress
 import org.arkikeskus.launcher.ui.component.AppIcon
 import org.arkikeskus.launcher.ui.component.AppLabel
+import org.arkikeskus.launcher.ui.component.AppTileAction
 import org.arkikeskus.launcher.ui.component.LocalAppLabelLines
 import org.arkikeskus.launcher.ui.component.LocalAppLabelScale
 import org.arkikeskus.launcher.ui.component.LocalIconScale
@@ -296,6 +302,9 @@ internal fun Workspace(
     }
     // The cell the dragged icon would drop into — shown as a placeholder while dragging.
     var targetCell by remember { mutableStateOf<IntOffset?>(null) }
+    // The icon or folder whose "Move" action is open (MoveTargetDialog): with a screen reader there is
+    // no finger to drag it to a cell, so the cells are listed instead.
+    var moveRequest by remember { mutableStateOf<MoveRequest?>(null) }
 
     val placedApps = remember(entries) { entries.filterIsInstance<PlacedApp>() }
     val folders = remember(entries) { entries.filterIsInstance<PlacedFolder>() }
@@ -947,6 +956,30 @@ internal fun Workspace(
         }
     }
 
+    // The screen-reader way to move an icon. The dialog closes on a pick, and the move lands through the
+    // same repository call the drag uses — a pick onto another icon swaps the two.
+    moveRequest?.let { moving ->
+        MoveTargetDialog(
+            appLabel = moving.label,
+            entries = entries,
+            pageCount = pageCount,
+            columns = columns,
+            rows = rows,
+            currentPage = moving.page,
+            currentCellX = moving.cellX,
+            currentCellY = moving.cellY,
+            onPick = { page, cellX, cellY ->
+                moveRequest = null
+                scope.launch {
+                    if (!moving.move(page, cellX, cellY)) {
+                        Toast.makeText(context, R.string.tile_move_failed, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            },
+            onDismiss = { moveRequest = null },
+        )
+    }
+
     Box(modifier = modifier) {
         Column(modifier = Modifier.fillMaxSize()) {
             val pagerScrolls = dragging == null && draggingLocal == null && editingWidget == null && widgetDragController.active == null
@@ -1126,6 +1159,10 @@ internal fun Workspace(
                                 // Where the icon (with its name) is when it is tapped: the folder's card opens by it.
                                 val iconPlace = remember { Ref<LayoutCoordinates>() }
                                 val iconBounds = { iconPlace.value?.takeIf { it.isAttached }?.boundsInRoot() ?: Rect.Zero }
+                                // Read here, outside the semantics block: the actions fire long after.
+                                val openLabel = stringResource(R.string.tile_open)
+                                val moveLabel = stringResource(R.string.tile_move)
+                                val deleteLabel = stringResource(R.string.folder_delete)
                                 Box(
                                     modifier = Modifier
                                         .offset {
@@ -1149,7 +1186,36 @@ internal fun Workspace(
                                             onStillPress = { onOpenFolder(entry, iconBounds()) },
                                             onRemove = { onRemoveFolder(entry.id) },
                                             pageLocked = pageLocked,
-                                        ),
+                                        )
+                                        // One spoken stop per folder: a button named by the folder,
+                                        // whose tap opens its card, with the swipe-down actions to move
+                                        // it or take it off home (owner, 18.11).
+                                        .clearAndSetSemantics {
+                                            contentDescription = entry.name
+                                            role = Role.Button
+                                            onClick(label = openLabel) {
+                                                onOpenFolder(entry, iconBounds())
+                                                true
+                                            }
+                                            customActions = listOf(
+                                                CustomAccessibilityAction(moveLabel) {
+                                                    moveRequest = MoveRequest(
+                                                        label = entry.name,
+                                                        page = entry.page,
+                                                        cellX = entry.cellX,
+                                                        cellY = entry.cellY,
+                                                        move = { page, cellX, cellY ->
+                                                            onMoveFolder(entry.id, page, cellX, cellY)
+                                                        },
+                                                    )
+                                                    true
+                                                },
+                                                CustomAccessibilityAction(deleteLabel) {
+                                                    onRemoveFolder(entry.id)
+                                                    true
+                                                },
+                                            )
+                                        },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     FolderIcon(
@@ -1175,6 +1241,18 @@ internal fun Workspace(
                             val currentPlaced by rememberUpdatedState(placed)
                             // The whole cell takes the tap; the launch zooms from the icon in it.
                             val launchOrigin = rememberAppLaunchOrigin()
+                            // The same anchor a hold opens the menu at, for the screen-reader action.
+                            val openMenu = {
+                                val cellTop = dragController.gridBounds.top + placed.cellY * cellH
+                                val above = cellTop + cellH / 2f > windowHeightPx * 0.45f
+                                val anchorX = dragController.gridBounds.left + placed.cellX * cellW + cellW / 2f
+                                val anchorY = if (above) cellTop else cellTop + cellH
+                                onAppMenu(
+                                    currentPlaced.app,
+                                    IntOffset(anchorX.roundToInt(), anchorY.roundToInt()),
+                                    above,
+                                )
+                            }
                             Box(
                                 modifier = Modifier
                                     .offset {
@@ -1393,6 +1471,29 @@ internal fun Workspace(
                                     badgeCount = badges[placed.app.badgeKey] ?: 0,
                                     badgeShowCount = badgeShowCount,
                                     badgeScale = badgeScale,
+                                    // One spoken stop per icon: a button with the app's name, the tap, the
+                                    // hold and the two swipe-down actions. Without it TalkBack read the
+                                    // picture and found nothing to act on (owner, 18.11).
+                                    tileClick = { onAppClick(currentPlaced.app) },
+                                    tileClickLabel = stringResource(R.string.tile_open),
+                                    tileLongClick = openMenu,
+                                    tileLongClickLabel = stringResource(R.string.tile_app_menu),
+                                    tileActions = listOf(
+                                        AppTileAction(stringResource(R.string.tile_move)) {
+                                            moveRequest = MoveRequest(
+                                                label = currentPlaced.app.label,
+                                                page = currentPlaced.page,
+                                                cellX = currentPlaced.cellX,
+                                                cellY = currentPlaced.cellY,
+                                                move = { page, cellX, cellY ->
+                                                    onMove(currentPlaced.app, page, cellX, cellY)
+                                                },
+                                            )
+                                        },
+                                        AppTileAction(stringResource(R.string.home_remove)) {
+                                            onRemoveFromHome(currentPlaced.app)
+                                        },
+                                    ),
                                 )
                             }
                             }

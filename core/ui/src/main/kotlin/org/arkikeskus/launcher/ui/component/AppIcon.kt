@@ -144,6 +144,22 @@ fun AppIcon(
      * no mark without it: a twin told apart only by a picture is not told apart for someone who cannot see it.
      */
     privateMark: String? = null,
+    /**
+     * What a tap does, for a screen reader: given, the whole tile becomes one button that says the
+     * app's name once, instead of a picture and a text under it (see [appTileSemantics]). The surface
+     * passes the same thing its gesture launches — a touch still goes through the surface's own
+     * pointer handling, this is the double-tap a screen reader sends.
+     */
+    tileClick: (() -> Unit)? = null,
+    /** The label of the double-tap action ("Открыть"); null leaves the screen reader's default. */
+    tileClickLabel: String? = null,
+    /** A hold, for a screen reader, opened as an action of its own (the app's menu). */
+    tileLongClick: (() -> Unit)? = null,
+    tileLongClickLabel: String? = null,
+    /** What state the tile is in, read after the name ("на главном экране", "перемещается"). */
+    tileState: String? = null,
+    /** Extra actions a screen reader finds on a swipe down ("Переместить"). */
+    tileActions: List<AppTileAction> = emptyList(),
 ) {
     val ownOrigin = rememberAppLaunchOrigin()
     val origin = launchOrigin ?: ownOrigin
@@ -152,13 +168,23 @@ fun AppIcon(
     // holds inside a row or a tile that is one stop of its own too.
     val profile = LocalProfileMarks.current[appItem.userSerial]
     val spoken = if (profile == null) appItem.label else "${appItem.label}, $profile"
-    // A marked icon is one stop for a screen reader, the name and the profile together ("Mail, Private space"):
-    // neither the picture nor the label under it is left saying the bare name, which is the personal twin's.
-    val marked = if (privateMark == null) {
-        Modifier
-    } else {
-        val description = "${appItem.label}, $privateMark"
-        Modifier.semantics(mergeDescendants = true) { contentDescription = description }
+    // The one name the tile says: the app's, its profile's, the private mark's. A marked icon is one stop for a
+    // screen reader, so neither the picture nor the label under it is left saying the bare name, which is the
+    // personal twin's.
+    val tileLabel = if (privateMark == null) spoken else "${appItem.label}, $privateMark"
+    val isButton = tileClick != null
+    val marked = when {
+        isButton -> Modifier.appTileSemantics(
+            label = tileLabel,
+            onClick = tileClick,
+            onClickLabel = tileClickLabel,
+            onLongClick = tileLongClick,
+            onLongClickLabel = tileLongClickLabel,
+            stateDescription = tileState,
+            actions = tileActions,
+        )
+        privateMark != null -> Modifier.semantics(mergeDescendants = true) { contentDescription = tileLabel }
+        else -> Modifier
     }
     Column(
         // Outermost, so the icon's whole area — padding a caller adds included — counts as its tap.

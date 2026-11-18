@@ -37,6 +37,9 @@ enum class FeedbackEvent(@param:StringRes internal val announcement: Int?) {
     Confirm(R.string.feedback_confirmed),
 
     FolderCreate(R.string.feedback_folder_created),
+
+    /** The app drawer is fully up: named aloud, so whoever cannot see it knows where they are. */
+    DrawerOpen(R.string.feedback_drawer_opened),
     FolderOpen(R.string.feedback_folder_opened),
     Move(R.string.feedback_app_moved),
 
@@ -79,6 +82,7 @@ class FeedbackPlayer @Inject constructor(
             FeedbackEvent.Place to pool.load(context, R.raw.feedback_place, 1),
             FeedbackEvent.Confirm to pool.load(context, R.raw.feedback_confirm, 1),
             FeedbackEvent.FolderCreate to pool.load(context, R.raw.feedback_folder_create, 1),
+            FeedbackEvent.DrawerOpen to pool.load(context, R.raw.feedback_folder_open, 1),
             FeedbackEvent.FolderOpen to pool.load(context, R.raw.feedback_folder_open, 1),
             FeedbackEvent.Move to pool.load(context, R.raw.feedback_move, 1),
             FeedbackEvent.Delete to pool.load(context, R.raw.feedback_delete, 1),
@@ -98,6 +102,10 @@ class FeedbackPlayer @Inject constructor(
 
     @Volatile
     private var speechReady = false
+
+    /** Set the first time the system refuses a vibration, so a dead motor is not retried per tick. */
+    @Volatile
+    private var vibratorBroken = false
 
     /** Starts the settings snapshot and the voice; the sounds were loaded when this was built. */
     fun warmUp(repository: SettingsRepository) {
@@ -149,17 +157,28 @@ class FeedbackPlayer @Inject constructor(
 
     private fun vibrate(event: FeedbackEvent) {
         val v = vibrator ?: return
+        if (vibratorBroken) return
         if (!v.hasVibrator()) return
         val effect = when (event) {
             FeedbackEvent.Select -> VibrationEffect.createOneShot(8, HALF_AMPLITUDE)
             FeedbackEvent.Place, FeedbackEvent.Move -> VibrationEffect.createOneShot(12, HALF_AMPLITUDE)
             FeedbackEvent.Confirm -> VibrationEffect.createWaveform(longArrayOf(0, 14, 45, 18), -1)
             FeedbackEvent.FolderCreate -> VibrationEffect.createWaveform(longArrayOf(0, 16, 50, 22), -1)
+            // The drawer's own greeting: two quick beats, short, so it reads as "here" and not as a nudge.
+            FeedbackEvent.DrawerOpen -> VibrationEffect.createWaveform(longArrayOf(0, 12, 40, 16), -1)
             FeedbackEvent.FolderOpen -> VibrationEffect.createWaveform(longArrayOf(0, 10, 30, 12), -1)
             FeedbackEvent.Delete, FeedbackEvent.FolderDelete -> VibrationEffect.createOneShot(28, DEFAULT_AMPLITUDE)
             FeedbackEvent.Error -> VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 30), -1)
         }
-        v.vibrate(effect)
+        // A refused vibration (no permission on an odd ROM, the motor in use by a call) must never
+        // take the launcher down: the sound and the spoken answer still go out.
+        try {
+            v.vibrate(effect)
+        } catch (e: SecurityException) {
+            vibratorBroken = true
+        } catch (e: RuntimeException) {
+            vibratorBroken = true
+        }
     }
 
     private fun speak(text: String) {

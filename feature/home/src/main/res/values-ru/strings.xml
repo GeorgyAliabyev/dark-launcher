@@ -82,6 +82,16 @@
     <string name="home_add">Добавить на главный экран</string>
     <string name="home_add_to_dock">Добавить на док-панель</string>
     <string name="dock_remove">Убрать с док-панели</string>
+    <string name="tile_open">Открыть</string>
+    <string name="tile_app_menu">Меню приложения</string>
+    <string name="tile_move">Переместить</string>
+    <string name="tile_move_title">Переместить «%1$s»</string>
+    <string name="tile_move_page">Страница %1$d</string>
+    <string name="tile_move_cell">Строка %1$d, столбец %2$d</string>
+    <string name="tile_move_empty">пусто</string>
+    <string name="tile_move_here">текущая позиция</string>
+    <string name="tile_move_widget">виджет</string>
+    <string name="tile_move_failed">Не удалось переместить приложение</string>
     <string name="app_info">О приложении</string>
     <string name="uninstall">Удалить</string>
     <string name="rename">Изменить</string>

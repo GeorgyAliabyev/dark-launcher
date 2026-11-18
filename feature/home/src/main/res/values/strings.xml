@@ -82,6 +82,17 @@
     <string name="home_add">Add to home</string>
     <string name="home_add_to_dock">Add to dock</string>
     <string name="dock_remove">Remove from dock</string>
+    <!-- What a screen reader offers on an app tile: the double tap and the swipe-down actions. -->
+    <string name="tile_open">Open</string>
+    <string name="tile_app_menu">App menu</string>
+    <string name="tile_move">Move</string>
+    <string name="tile_move_title">Move “%1$s”</string>
+    <string name="tile_move_page">Page %1$d</string>
+    <string name="tile_move_cell">Row %1$d, column %2$d</string>
+    <string name="tile_move_empty">empty</string>
+    <string name="tile_move_here">current position</string>
+    <string name="tile_move_widget">widget</string>
+    <string name="tile_move_failed">Could not move the app</string>
     <string name="app_info">App info</string>
     <string name="uninstall">Uninstall</string>
     <string name="rename">Edit</string>
