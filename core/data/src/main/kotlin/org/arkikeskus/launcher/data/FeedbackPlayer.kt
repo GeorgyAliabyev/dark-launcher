@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.arkikeskus.launcher.model.LauncherSettings
 import java.util.Locale
@@ -118,11 +119,20 @@ class FeedbackPlayer @Inject constructor(
         if (s.feedbackSpeech && announcement != null) speak(context.getString(announcement))
     }
 
-    /** Settings' "Try the signals": all three answers at once, whatever the switches say. */
+    /**
+     * Settings' "Try the signals": a short demo of the set, one answer per beat — a folder
+     * made, an app placed, an app moved, something deleted — then the spoken confirmation.
+     * The switches are ignored here: this button is for hearing what the signals are.
+     */
     fun preview() {
-        playSound(FeedbackEvent.Confirm)
-        vibrate(FeedbackEvent.Confirm)
-        speak(context.getString(R.string.feedback_signals_on))
+        scope.launch {
+            for ((event, gap) in PREVIEW) {
+                playSound(event)
+                vibrate(event)
+                delay(gap)
+            }
+            speak(context.getString(R.string.feedback_signals_on))
+        }
     }
 
     fun release() {
@@ -158,6 +168,14 @@ class FeedbackPlayer @Inject constructor(
     }
 
     private companion object {
+        /** The demo order, each event with the pause that follows it. */
+        val PREVIEW = listOf(
+            FeedbackEvent.FolderCreate to 620L,
+            FeedbackEvent.Place to 380L,
+            FeedbackEvent.Move to 380L,
+            FeedbackEvent.Delete to 450L,
+        )
+
         const val MAX_STREAMS = 3
         const val VOLUME = 0.9f
         const val HALF_AMPLITUDE = 90

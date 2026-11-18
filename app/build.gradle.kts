@@ -22,8 +22,8 @@ android {
     defaultConfig {
         manifestPlaceholders["appLabel"] = "@string/app_name"
         applicationId = "ru.clubgeek.darklauncher"
-        versionCode = 76
-        versionName = "1.2.1"
+        versionCode = 77
+        versionName = "0.2"
     }
 
     // F-Droid rejects the Play "Dependency metadata" signing block AGP adds by default.

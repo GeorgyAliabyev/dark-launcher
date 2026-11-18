@@ -231,7 +231,7 @@
     <string name="settings_signal_speech">Speak what happened</string>
     <string name="settings_signal_speech_desc">The launcher says it in its own voice — “folder created”, “moved”, “deleted” — so an action is confirmed without reading the screen.</string>
     <string name="settings_signal_preview">Try the signals</string>
-    <string name="settings_signal_preview_desc">Plays the sound, the vibration and the spoken confirmation together, whatever the switches above say.</string>
+    <string name="settings_signal_preview_desc">Plays four signals in a row — folder created, app placed, moved, deleted — then the spoken confirmation. The switches above do not affect it.</string>
     <string name="settings_lock_sounds">Lock and unlock sounds</string>
     <string name="settings_lock_sounds_desc">A sound you pick plays when the phone locks and when it unlocks — not when it is silent or on vibrate, in Do not disturb or in a call.</string>
     <string name="settings_lock_sound">Lock sound</string>

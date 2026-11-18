@@ -237,7 +237,7 @@
     <string name="settings_signal_speech">Проговаривать, что произошло</string>
     <string name="settings_signal_speech_desc">Лаунчер сам говорит своим голосом: «папка создана», «перемещено», «удалено». Так действие подтверждается без чтения экрана.</string>
     <string name="settings_signal_preview">Проверить сигналы</string>
-    <string name="settings_signal_preview_desc">Проиграет звук, вибрацию и проговаривание вместе, независимо от переключателей выше.</string>
+    <string name="settings_signal_preview_desc">Проиграет четыре сигнала подряд — папка создана, приложение размещено, перемещено, удалено, — а затем проговорит подтверждение. Переключатели выше на проверку не влияют.</string>
     <string name="settings_lock_sounds">Звуки блокировки и разблокировки</string>
     <string name="settings_lock_sounds_desc">Выбранный вами звук звучит при блокировке и разблокировке телефона — но не в беззвучном режиме, в режиме вибрации, «Не беспокоить» или во время звонка.</string>
     <string name="settings_lock_sound">Звук блокировки</string>
