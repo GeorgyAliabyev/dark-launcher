@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -201,7 +202,7 @@ private fun SoundSourceDialog(title: String, onPick: (SoundSource) -> Unit, onDi
                         stringResource(label),
                         color = p.text,
                         fontSize = 16.sp,
-                        modifier = Modifier.fillMaxWidth().clickable { onPick(source) }.padding(vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().clickable(role = Role.Button) { onPick(source) }.padding(vertical = 14.dp),
                     )
                 }
             }

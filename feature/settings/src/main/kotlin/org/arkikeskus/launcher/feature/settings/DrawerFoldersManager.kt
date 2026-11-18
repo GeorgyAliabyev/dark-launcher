@@ -138,7 +138,7 @@ private fun FolderList(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onOpen(folder.id) }
+                        .clickable(role = Role.Button) { onOpen(folder.id) }
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                         .testTag(FOLDER_MANAGER_FOLDER_ROW_TAG),
                     verticalAlignment = Alignment.CenterVertically,

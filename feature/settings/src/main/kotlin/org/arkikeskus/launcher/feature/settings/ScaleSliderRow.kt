@@ -22,6 +22,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +100,10 @@ internal fun ScaleSliderRow(
         modifier = Modifier.fillMaxWidth().padding(bottom = expressiveCardGap()),
     ) {
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) { },
+            ) {
                 Text(label, color = p.text, fontSize = 16.sp, modifier = Modifier.weight(1f))
                 Text(
                     shown,
@@ -121,6 +126,8 @@ internal fun ScaleSliderRow(
                 valueRange = valueRange,
                 steps = scaleSliderSteps(valueRange, step),
                 colors = expressiveSliderColors(),
+                // Named for a screen reader: without it the thumb is a bare "slider, 115%".
+                modifier = Modifier.semantics { contentDescription = label },
             )
             // Below the slider, so its appearance never moves the thumb away from the finger.
             if (shown != valueText(default)) {

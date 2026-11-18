@@ -3,5 +3,5 @@
     <string name="app_name">Dark Launcher</string>
     <string name="set_default_launcher">Set as default launcher</string>
     <string name="default_launcher_active">Default launcher active</string>
-    <string name="settings_label">ARK-Launcher settings</string>
+    <string name="settings_label">Dark Launcher settings</string>
 </resources>

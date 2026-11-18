@@ -7,6 +7,8 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +27,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
@@ -85,7 +89,11 @@ internal fun ChoicePicker(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
-                            .clickable { onPick(value) }
+                            .selectable(
+                                selected = selected == value,
+                                role = Role.RadioButton,
+                                onClick = { onPick(value) },
+                            )
                             .padding(vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -126,7 +134,7 @@ internal fun SingleAppPicker(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .clickable { onPick(null) }
+                        .clickable(role = Role.Button) { onPick(null) }
                         .padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -137,7 +145,7 @@ internal fun SingleAppPicker(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
-                            .clickable { onPick(app.key) }
+                            .clickable(role = Role.Button) { onPick(app.key) }
                             .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -189,7 +197,16 @@ internal fun SwitchRow(
 ) {
     val p = LocalExpressivePalette.current
     val labelColor = if (enabled) p.text else p.dim
-    ExpressiveCard {
+    // The whole card is the switch: one TalkBack stop that speaks the label, the description and the
+    // state, and toggles on double-tap. The drawn switch is only a picture of that state.
+    ExpressiveCard(
+        modifier = Modifier.toggleable(
+            value = checked,
+            enabled = enabled,
+            role = Role.Switch,
+            onValueChange = onCheckedChange,
+        ),
+    ) {
         if (description == null) {
             RowLabel(label, Modifier.weight(1f), color = labelColor)
         } else {
@@ -198,31 +215,43 @@ internal fun SwitchRow(
                 Text(description, color = p.dim, fontSize = 12.5.sp)
             }
         }
-        ExpressiveSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        ExpressiveSwitch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            modifier = Modifier.clearAndSetSemantics { },
+        )
     }
 }
 
 @Composable
 internal fun StepperRow(label: String, value: Int, min: Int, max: Int, onValueChange: (Int) -> Unit) {
     val p = LocalExpressivePalette.current
+    // A screen reader hears the setting by name and its value on the readout, and each button names
+    // the setting it changes — "Icon size: decrease" — instead of a bare "Decrease" three stops later.
+    val readout = stringResource(R.string.settings_step_value, label, value)
+    val decrease = stringResource(R.string.settings_step_decrease_for, label)
+    val increase = stringResource(R.string.settings_step_increase_for, label)
     ExpressiveCard {
-        RowLabel(label, Modifier.weight(1f))
+        RowLabel(label, Modifier.weight(1f).clearAndSetSemantics { })
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            StepButton(LauncherIcons.Remove, stringResource(R.string.settings_step_decrease)) {
+            StepButton(LauncherIcons.Remove, decrease) {
                 if (value > min) onValueChange(value - 1)
             }
             Text(
                 text = "$value",
-                modifier = Modifier.widthIn(min = 26.dp),
+                modifier = Modifier
+                    .widthIn(min = 26.dp)
+                    .semantics { contentDescription = readout },
                 textAlign = TextAlign.Center,
                 color = p.text,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
             )
-            StepButton(LauncherIcons.Add, stringResource(R.string.settings_step_increase)) {
+            StepButton(LauncherIcons.Add, increase) {
                 if (value < max) onValueChange(value + 1)
             }
         }

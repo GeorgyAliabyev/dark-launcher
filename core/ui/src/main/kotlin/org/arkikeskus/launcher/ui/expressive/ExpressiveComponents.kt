@@ -41,6 +41,7 @@ fun ExpressiveSectionTitle(text: String, color: Color = LocalExpressivePalette.c
 @Composable
 fun ExpressiveCard(
     onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
     val p = LocalExpressivePalette.current
@@ -51,6 +52,7 @@ fun ExpressiveCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = expressiveCardGap())
+            .then(modifier)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
     ) {
         Row(

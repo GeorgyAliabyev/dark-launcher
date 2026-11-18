@@ -5,6 +5,7 @@ import android.graphics.drawable.ColorDrawable
 import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -228,7 +229,7 @@ internal fun IconPackPicker(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .clickable { onPick("") }
+                        .selectable(selected = selected.isBlank(), role = Role.RadioButton) { onPick("") }
                         .padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -243,7 +244,7 @@ internal fun IconPackPicker(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
-                            .clickable { onPick(pack.packageName) }
+                            .selectable(selected = selected == pack.packageName, role = Role.RadioButton) { onPick(pack.packageName) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
