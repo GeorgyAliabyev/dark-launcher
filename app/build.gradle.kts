@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         manifestPlaceholders["appLabel"] = "@string/app_name"
-        applicationId = "org.arkikeskus.launcher"
+        applicationId = "ru.clubgeek.darklauncher"
         versionCode = 76
         versionName = "1.2.1"
     }
@@ -57,7 +57,7 @@ android {
             applicationIdSuffix = ".debug"
             // Installed beside the release build on the test phones: a distinct app-list label keeps
             // its own (separate) home screen from being taken for the release one.
-            manifestPlaceholders["appLabel"] = "ARK-Launcher debug"
+            manifestPlaceholders["appLabel"] = "Dark Launcher debug"
         }
         release {
             isMinifyEnabled = true
@@ -85,7 +85,7 @@ androidComponents {
         for (name in listOf("nonMinifiedRelease", "benchmarkRelease")) {
             extension.buildTypes.findByName(name)?.apply {
                 applicationIdSuffix = ".bench"
-                manifestPlaceholders["appLabel"] = "ARK-Launcher bench"
+                manifestPlaceholders["appLabel"] = "Dark Launcher bench"
             }
         }
     }

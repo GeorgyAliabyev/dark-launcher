@@ -30,6 +30,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.arkikeskus.launcher.data.AppRepository
 import org.arkikeskus.launcher.data.CustomIconStore
+import org.arkikeskus.launcher.data.FeedbackEvent
+import org.arkikeskus.launcher.data.FeedbackPlayer
 import org.arkikeskus.launcher.data.FolderIconKey
 import org.arkikeskus.launcher.data.ShortcutIconKey
 import org.arkikeskus.launcher.data.RemainingPins
@@ -229,6 +231,7 @@ class HomeViewModel @Inject constructor(
     notificationBadgeRepository: NotificationBadgeRepository,
     private val signalMonitor: org.arkikeskus.launcher.launcher.system.SignalMonitor,
     private val customIcons: CustomIconStore,
+    private val feedback: FeedbackPlayer,
 ) : ViewModel() {
 
     private val _notices = Channel<HomeNotice>(Channel.BUFFERED)
@@ -567,12 +570,18 @@ class HomeViewModel @Inject constructor(
         val state = uiState.value
         val folder = state.entries.filterIsInstance<PlacedFolder>().firstOrNull { it.id == folderId }
             ?: state.dockEntries.filterIsInstance<DockFolder>().firstOrNull { it.rowId == folderId }?.folder
-        if (folder != null && folder.apps.isEmpty()) homeLayoutRepository.removeFolder(folderId)
+        if (folder != null && folder.apps.isEmpty()) {
+            homeLayoutRepository.removeFolder(folderId)
+            feedback.play(FeedbackEvent.FolderDelete)
+        }
     }
 
     /** The folder card's "Delete folder" (issue #20), confirmed there: the folder goes with every app
      *  in it, which stay in the drawer. [removeFolder] above is the drag path's, for an empty folder only. */
-    fun deleteFolder(folderId: Long) = viewModelScope.launch { homeLayoutRepository.removeFolder(folderId) }
+    fun deleteFolder(folderId: Long) = viewModelScope.launch {
+        homeLayoutRepository.removeFolder(folderId)
+        feedback.play(FeedbackEvent.FolderDelete)
+    }
 
     /** Removes a pinned shortcut from home and re-pins the remaining set for its package in the system;
      *  the icon picked for it goes with its last copy ([shortcutIconStaysAfterRemoval]) inside the same
@@ -732,11 +741,11 @@ class HomeViewModel @Inject constructor(
 
     /** Moves/swaps a home shortcut; returns whether the repository accepted it (see [Workspace]). */
     suspend fun moveItem(appItem: AppItem, page: Int, cellX: Int, cellY: Int): Boolean =
-        homeLayoutRepository.moveItem(appItem, page, cellX, cellY)
+        homeLayoutRepository.moveItem(appItem, page, cellX, cellY).also { if (it) feedback.play(FeedbackEvent.Move) }
 
     /** Moves/swaps a folder to a home cell (folder relocation on the grid). */
     suspend fun moveFolder(folderId: Long, page: Int, cellX: Int, cellY: Int): Boolean =
-        homeLayoutRepository.moveFolder(folderId, page, cellX, cellY)
+        homeLayoutRepository.moveFolder(folderId, page, cellX, cellY).also { if (it) feedback.play(FeedbackEvent.Move) }
 
     /** Moves or resizes a widget to the given bounds; returns whether the repository accepted it
      *  (the Workspace clears its optimistic override on false). */
@@ -765,30 +774,34 @@ class HomeViewModel @Inject constructor(
             // [index] counts the dock as shown; rows that don't resolve are skipped in it.
             homeLayoutRepository.moveHomeAppToDock(appItem, index, shownDockKeys())
         }
+        feedback.play(FeedbackEvent.Move)
     }
 
     /** Drop an app onto another home app → make a folder of the two. */
     fun createFolder(target: AppItem, dropped: AppItem, name: String) = viewModelScope.launch {
         homeLayoutRepository.createFolder(target, dropped, name)
+        feedback.play(FeedbackEvent.FolderCreate)
     }
 
     /** Drop an app onto an existing folder → add it to that folder. */
     fun addToFolder(appItem: AppItem, folderId: Long) = viewModelScope.launch {
         homeLayoutRepository.addToFolder(appItem, folderId)
+        feedback.play(FeedbackEvent.Place)
     }
 
     /** Take an app out of a folder back onto the home screen (dissolves the folder if one is left). */
     fun removeFromFolder(appItem: AppItem, folderId: Long) = viewModelScope.launch {
         val s = settingsRepository.settings.first()
-        if (!homeLayoutRepository.removeFromFolder(appItem, folderId, s.homeColumns, s.homeRows)) {
-            notify(HomeNotice.HomeFull)
-        }
+        val removed = homeLayoutRepository.removeFromFolder(appItem, folderId, s.homeColumns, s.homeRows)
+        if (!removed) notify(HomeNotice.HomeFull)
+        feedback.play(if (removed) FeedbackEvent.Move else FeedbackEvent.Error)
     }
 
     /** The editor's "Add apps" list, confirmed (discussion #16): the ticked apps join the folder, in the
      *  order they were ticked. */
     fun addAppsToFolder(folderId: Long, apps: List<AppItem>) = viewModelScope.launch {
         homeLayoutRepository.addAppsToFolder(folderId, apps)
+        feedback.play(FeedbackEvent.Place)
     }
 
     /** The editor's "Sort A-Z" (discussion #16): the folder's apps in the order of their names, capitals
@@ -828,6 +841,7 @@ class HomeViewModel @Inject constructor(
     /** An app dragged out of its open folder onto the remove pill: it leaves the home screen entirely. */
     fun removeFromFolderEntirely(appItem: AppItem, folderId: Long) = viewModelScope.launch {
         homeLayoutRepository.removeChild(appItem, folderId)
+        feedback.play(FeedbackEvent.Delete)
     }
 
     fun renameFolder(folderId: Long, name: String) =

@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import org.arkikeskus.launcher.data.AppRepository
 import org.arkikeskus.launcher.data.CustomIconStore
 import org.arkikeskus.launcher.data.DrawerFolder
+import org.arkikeskus.launcher.data.FeedbackPlayer
 import org.arkikeskus.launcher.data.HomeLayoutRepository
 import org.arkikeskus.launcher.data.IconPackInfo
 import org.arkikeskus.launcher.data.IconPackRepository
@@ -37,6 +38,7 @@ internal class SettingsViewModel @Inject constructor(
     appRepository: AppRepository,
     private val drawerWallpaper: DrawerWallpaperStore,
     privateSpace: PrivateSpaceRepository,
+    private val feedback: FeedbackPlayer,
 ) : ViewModel(), SettingsActions {
 
     /** Whether the launcher sees a private space on this phone: the rows that are about one exist only then. */
@@ -168,6 +170,10 @@ internal class SettingsViewModel @Inject constructor(
     override fun setLockSound(slot: SoundSlot, uri: String) = update {
         if (slot == SoundSlot.Lock) repository.setLockSoundUri(uri) else repository.setUnlockSoundUri(uri)
     }
+    override fun setSignalSounds(value: Boolean) = update { repository.setFeedbackSounds(value) }
+    override fun setSignalVibrations(value: Boolean) = update { repository.setFeedbackVibrations(value) }
+    override fun setSignalSpeech(value: Boolean) = update { repository.setFeedbackSpeech(value) }
+    override fun previewSignals() = feedback.preview()
     override fun setLongPressScale(value: Float) = update { repository.setLongPressScale(value) }
     override fun setIconSwipeDistance(value: Float) = update { repository.setIconSwipeDistance(value) }
 

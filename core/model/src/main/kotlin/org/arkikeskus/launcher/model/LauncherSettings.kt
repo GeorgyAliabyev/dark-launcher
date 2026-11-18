@@ -197,6 +197,16 @@ data class LauncherSettings(
     val lockSoundUri: String = "",
     /** The sound picked for unlocking (a content URI; "" = none). Kept on this phone only. */
     val unlockSoundUri: String = "",
+    /** The launcher's own feedback sounds: a soft tick, a chime, a thud — one per action
+     *  (Settings > Sounds > Signals). Independent of [feedbackVibrations] and [feedbackSpeech],
+     *  so a person can run sounds alone with the screen reader silent. */
+    val feedbackSounds: Boolean = true,
+    /** A short vibration with the same actions, on the same three-way switch. */
+    val feedbackVibrations: Boolean = true,
+    /** The launcher speaks the same actions itself, for a screen reader that cannot follow a
+     *  gesture without a confirmation. Its own announcements only: TalkBack's focus speech
+     *  keeps going whatever this says. */
+    val feedbackSpeech: Boolean = true,
     /** What the built-in people widget shows of a notification on the (shared) home screen:
      *  [PRIVACY_ALL] = sender + message text, [PRIVACY_SENDER] = sender only, [PRIVACY_COUNT] = the
      *  tile colors and counts but shows no text at all (pinned people keep their user-chosen name). */

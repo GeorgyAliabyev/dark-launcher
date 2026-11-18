@@ -95,13 +95,26 @@ internal fun SettingsCategoryPage(
                     OwnStatusBarRows(s, actions)
                 }
                 SettingsCategory.NOTIFICATIONS -> NotificationsRows(s, actions)
-                SettingsCategory.SOUNDS -> LockSoundsSettings(
-                    enabled = s.lockSoundsEnabled,
-                    lockUri = s.lockSoundUri,
-                    unlockUri = s.unlockSoundUri,
-                    onSetEnabled = actions::setLockSoundsEnabled,
-                    onSetSound = actions::setLockSound,
-                )
+                SettingsCategory.SOUNDS -> {
+                    PageHeading(stringResource(R.string.settings_signals), first = true)
+                    SignalsSection(
+                        sounds = s.feedbackSounds,
+                        vibrations = s.feedbackVibrations,
+                        speech = s.feedbackSpeech,
+                        onSetSounds = actions::setSignalSounds,
+                        onSetVibrations = actions::setSignalVibrations,
+                        onSetSpeech = actions::setSignalSpeech,
+                        onPreview = actions::previewSignals,
+                    )
+                    PageHeading(stringResource(R.string.settings_lock_sounds))
+                    LockSoundsSettings(
+                        enabled = s.lockSoundsEnabled,
+                        lockUri = s.lockSoundUri,
+                        unlockUri = s.unlockSoundUri,
+                        onSetEnabled = actions::setLockSoundsEnabled,
+                        onSetSound = actions::setLockSound,
+                    )
+                }
                 SettingsCategory.SCREENSAVER -> ScreensaverRows()
                 SettingsCategory.PERMISSIONS -> PermissionsRows()
                 SettingsCategory.BACKUP -> Unit

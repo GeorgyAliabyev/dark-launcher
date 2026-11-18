@@ -34,4 +34,14 @@
     <string name="setting_systemupdate">Обновление ПО</string>
     <string name="setting_systemupdate_aliases">обновление системы,обновление,обновления,прошивка,system update</string>
     <string name="private_space_search_phrases">частное пространство|личное пространство</string>
+
+    <string name="feedback_app_placed">Размещено</string>
+    <string name="feedback_confirmed">Готово</string>
+    <string name="feedback_folder_created">Папка создана</string>
+    <string name="feedback_folder_opened">Папка открыта</string>
+    <string name="feedback_app_moved">Перемещено</string>
+    <string name="feedback_deleted">Удалено</string>
+    <string name="feedback_folder_deleted">Папка удалена</string>
+    <string name="feedback_blocked">Не получилось</string>
+    <string name="feedback_signals_on">Сигналы включены</string>
 </resources>

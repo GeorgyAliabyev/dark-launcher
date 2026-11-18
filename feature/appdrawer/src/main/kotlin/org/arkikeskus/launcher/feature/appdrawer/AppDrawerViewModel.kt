@@ -32,6 +32,8 @@ import org.arkikeskus.launcher.data.AppRepository
 import org.arkikeskus.launcher.data.CustomIconStore
 import org.arkikeskus.launcher.data.DrawerWallpaperStore
 import org.arkikeskus.launcher.data.DrawerWallpaper
+import org.arkikeskus.launcher.data.FeedbackEvent
+import org.arkikeskus.launcher.data.FeedbackPlayer
 import org.arkikeskus.launcher.data.FolderIconKey
 import org.arkikeskus.launcher.data.HomeLayoutRepository
 import org.arkikeskus.launcher.data.NotificationBadgeRepository
@@ -165,6 +167,7 @@ class AppDrawerViewModel @Inject constructor(
     private val privateSpace: PrivateSpaceRepository,
     private val customIcons: CustomIconStore,
     private val drawerWallpaper: DrawerWallpaperStore,
+    private val feedback: FeedbackPlayer,
 ) : ViewModel() {
 
     private val _notices = Channel<HomeNotice>(Channel.BUFFERED)
@@ -589,11 +592,15 @@ class AppDrawerViewModel @Inject constructor(
     fun renameDrawerFolder(id: Long, name: String) =
         viewModelScope.launch { settingsRepository.renameDrawerFolder(id, name) }
 
-    fun deleteDrawerFolder(id: Long) =
-        viewModelScope.launch { customIcons.deleteDrawerFolder(id) }
+    fun deleteDrawerFolder(id: Long) = viewModelScope.launch {
+        customIcons.deleteDrawerFolder(id)
+        feedback.play(FeedbackEvent.FolderDelete)
+    }
 
-    fun addAppsToDrawerFolder(id: Long, keys: List<String>) =
-        viewModelScope.launch { settingsRepository.addAppsToDrawerFolder(id, keys) }
+    fun addAppsToDrawerFolder(id: Long, keys: List<String>) = viewModelScope.launch {
+        settingsRepository.addAppsToDrawerFolder(id, keys)
+        feedback.play(FeedbackEvent.Place)
+    }
 
     fun removeAppFromDrawerFolder(id: Long, key: String) =
         viewModelScope.launch { settingsRepository.removeAppFromDrawerFolder(id, key) }

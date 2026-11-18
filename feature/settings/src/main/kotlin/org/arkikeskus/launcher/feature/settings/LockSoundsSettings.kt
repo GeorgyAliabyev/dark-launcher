@@ -52,6 +52,55 @@ internal enum class SoundSlot { Lock, Unlock }
 internal enum class SoundSource { File, Phone, None }
 
 /**
+ * Settings → Sounds → Signals: the three ways the launcher answers an action — its own sound, a
+ * vibration, and a spoken confirmation. Speech off leaves a full sounds-and-vibration mode with the
+ * screen reader silent, which is what a person who does not use it wants.
+ */
+@Composable
+internal fun SignalsSection(
+    sounds: Boolean,
+    vibrations: Boolean,
+    speech: Boolean,
+    onSetSounds: (Boolean) -> Unit,
+    onSetVibrations: (Boolean) -> Unit,
+    onSetSpeech: (Boolean) -> Unit,
+    onPreview: () -> Unit,
+) {
+    SettingRow("S5") {
+        SwitchRow(
+            stringResource(R.string.settings_signal_sounds),
+            stringResource(R.string.settings_signal_sounds_desc),
+            sounds,
+            onSetSounds,
+        )
+    }
+    SettingRow("S6") {
+        SwitchRow(
+            stringResource(R.string.settings_signal_vibrations),
+            stringResource(R.string.settings_signal_vibrations_desc),
+            vibrations,
+            onSetVibrations,
+        )
+    }
+    SettingRow("S7") {
+        SwitchRow(
+            stringResource(R.string.settings_signal_speech),
+            stringResource(R.string.settings_signal_speech_desc),
+            speech,
+            onSetSpeech,
+        )
+    }
+    SettingRow("S8") {
+        ExpressiveActionRow(
+            label = stringResource(R.string.settings_signal_preview),
+            description = stringResource(R.string.settings_signal_preview_desc),
+            trailingIcon = LauncherIcons.Play,
+            onClick = onPreview,
+        )
+    }
+}
+
+/**
  * Settings → Sounds: the lock and unlock sounds switch; while it is on, the sound for each — named,
  * with a play button once picked — and the way to the phone's sound settings, where its own screen
  * locking sound is turned off (an app can't).

@@ -9,7 +9,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.arkikeskus.launcher.data.CustomIconStore
+import org.arkikeskus.launcher.data.FeedbackPlayer
 import org.arkikeskus.launcher.data.PendingWidgetIds
+import org.arkikeskus.launcher.data.SettingsRepository
 import org.arkikeskus.launcher.data.SharedPreferencesPendingIdStorage
 import org.arkikeskus.launcher.data.di.ApplicationScope
 import org.arkikeskus.launcher.feature.screensaver.ScreensaverPowerEvents
@@ -26,6 +28,13 @@ class LauncherApplication : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var lockSounds: LockSounds
+
+    /** The launcher's own signals: a sound, a vibration, a spoken confirmation. */
+    @Inject
+    lateinit var feedback: FeedbackPlayer
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
 
     @Inject
     lateinit var customIcons: CustomIconStore
@@ -45,6 +54,7 @@ class LauncherApplication : Application(), SingletonImageLoader.Factory {
         // app's request held when a previous process died with the system's bind dialog open.
         PendingWidgetIds.shared.persistIn(SharedPreferencesPendingIdStorage(this))
         lockSounds.start()
+        feedback.warmUp(settingsRepository)
         screensaverPowerEvents.start()
         // Gallery pictures an earlier run left unused (see CustomIconStore.deleteUnusedPictures).
         scope.launch(Dispatchers.IO) { runCatching { customIcons.deleteUnusedPictures(savedBefore = startedAt) } }

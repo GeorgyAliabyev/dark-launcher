@@ -33,4 +33,15 @@
     <string name="setting_systemupdate">Software updates</string>
     <string name="setting_systemupdate_aliases">software update,system update,update,updates</string>
     <string name="private_space_search_phrases">private space</string>
+
+    <!-- Said aloud after an action when Settings > Sounds > Signals has speaking on. -->
+    <string name="feedback_app_placed">Placed</string>
+    <string name="feedback_confirmed">Done</string>
+    <string name="feedback_folder_created">Folder created</string>
+    <string name="feedback_folder_opened">Folder opened</string>
+    <string name="feedback_app_moved">Moved</string>
+    <string name="feedback_deleted">Deleted</string>
+    <string name="feedback_folder_deleted">Folder deleted</string>
+    <string name="feedback_blocked">Not possible</string>
+    <string name="feedback_signals_on">Signals on</string>
 </resources>

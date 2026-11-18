@@ -222,6 +222,16 @@
     <string name="settings_widget_inset">Widget edges align with icons</string>
     <string name="settings_widget_inset_desc">Widgets keep the same side margin as app icons instead of filling their cells edge to edge. Widgets with margins of their own may look smaller.</string>
     <string name="settings_sounds">Sounds</string>
+    <string name="settings_signals">Signals</string>
+    <string name="settings_signals_desc">How the launcher answers what you do: with its own short sound, with a vibration, and by saying what happened. Turn speech off and the screen reader stays quiet — the sound and the vibration still answer.</string>
+    <string name="settings_signal_sounds">Signal sounds</string>
+    <string name="settings_signal_sounds_desc">The launcher\'s own sounds: a folder made, an app moved, something deleted, an action refused.</string>
+    <string name="settings_signal_vibrations">Signal vibration</string>
+    <string name="settings_signal_vibrations_desc">A short vibration for the same actions — when the phone is in your hand and a sound is out of place.</string>
+    <string name="settings_signal_speech">Speak what happened</string>
+    <string name="settings_signal_speech_desc">The launcher says it in its own voice — “folder created”, “moved”, “deleted” — so an action is confirmed without reading the screen.</string>
+    <string name="settings_signal_preview">Try the signals</string>
+    <string name="settings_signal_preview_desc">Plays the sound, the vibration and the spoken confirmation together, whatever the switches above say.</string>
     <string name="settings_lock_sounds">Lock and unlock sounds</string>
     <string name="settings_lock_sounds_desc">A sound you pick plays when the phone locks and when it unlocks — not when it is silent or on vibrate, in Do not disturb or in a call.</string>
     <string name="settings_lock_sound">Lock sound</string>

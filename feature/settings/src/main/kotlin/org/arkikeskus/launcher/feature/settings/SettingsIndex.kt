@@ -224,6 +224,10 @@ internal object SettingsIndex {
             row("S2", c, R.string.settings_lock_sound, fallback = "S1")
             row("S3", c, R.string.settings_unlock_sound, fallback = "S1")
             row("S4", c, R.string.settings_phone_sound_settings, R.string.settings_phone_sound_settings_desc, fallback = "S1")
+        row("S5", c, R.string.settings_signal_sounds, R.string.settings_signal_sounds_desc)
+        row("S6", c, R.string.settings_signal_vibrations, R.string.settings_signal_vibrations_desc)
+        row("S7", c, R.string.settings_signal_speech, R.string.settings_signal_speech_desc)
+        row("S8", c, R.string.settings_signal_preview, R.string.settings_signal_preview_desc)
         }
         // The screensaver's rows carry the screensaver module's own texts.
         SettingsCategory.SCREENSAVER.let { c ->

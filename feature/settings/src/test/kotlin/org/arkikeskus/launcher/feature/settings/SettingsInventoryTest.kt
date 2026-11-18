@@ -152,6 +152,8 @@ class SettingsInventoryTest {
             "N1" to "settings_notif_dots", "N2" to "settings_notif_count", "N3" to "settings_notif_size",
             "S1" to "settings_lock_sounds", "S2" to "settings_lock_sound", "S3" to "settings_unlock_sound",
             "S4" to "settings_phone_sound_settings",
+            "S5" to "settings_signal_sounds", "S6" to "settings_signal_vibrations",
+            "S7" to "settings_signal_speech", "S8" to "settings_signal_preview",
             "SS1" to "dream_style_title", "SS2" to "open_screensaver_settings",
             "SS24" to "settings_screensaver_low_light", "SS3" to "dream_start_on_charge_title",
             "SS4" to "settings_screensaver_battery_full", "SS5" to "dream_device_name_title",

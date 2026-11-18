@@ -193,6 +193,9 @@ class SettingsRepository @Inject constructor(
             lockSoundsEnabled = p[Keys.LOCK_SOUNDS_ENABLED] ?: false,
             lockSoundUri = p[Keys.LOCK_SOUND_URI].orEmpty(),
             unlockSoundUri = p[Keys.UNLOCK_SOUND_URI].orEmpty(),
+            feedbackSounds = p[Keys.FEEDBACK_SOUNDS] ?: true,
+            feedbackVibrations = p[Keys.FEEDBACK_VIBRATIONS] ?: true,
+            feedbackSpeech = p[Keys.FEEDBACK_SPEECH] ?: true,
             peoplePrivacy = (p[Keys.PEOPLE_PRIVACY] ?: LauncherSettings.PRIVACY_ALL).let {
                 if (it == LauncherSettings.PRIVACY_SENDER || it == LauncherSettings.PRIVACY_COUNT) it
                 else LauncherSettings.PRIVACY_ALL
@@ -317,6 +320,9 @@ class SettingsRepository @Inject constructor(
     suspend fun setLockSoundsEnabled(value: Boolean) = edit { it[Keys.LOCK_SOUNDS_ENABLED] = value }
     suspend fun setLockSoundUri(uri: String) = edit { it[Keys.LOCK_SOUND_URI] = uri }
     suspend fun setUnlockSoundUri(uri: String) = edit { it[Keys.UNLOCK_SOUND_URI] = uri }
+    suspend fun setFeedbackSounds(value: Boolean) = edit { it[Keys.FEEDBACK_SOUNDS] = value }
+    suspend fun setFeedbackVibrations(value: Boolean) = edit { it[Keys.FEEDBACK_VIBRATIONS] = value }
+    suspend fun setFeedbackSpeech(value: Boolean) = edit { it[Keys.FEEDBACK_SPEECH] = value }
 
     /** App keys hidden from the app drawer (see AppItem.key). */
     val hiddenApps: Flow<Set<String>> = dataStore.data.map { p ->
@@ -890,6 +896,9 @@ class SettingsRepository @Inject constructor(
         val LOCK_SOUNDS_ENABLED = booleanPreferencesKey("lock_sounds_enabled")
         val LOCK_SOUND_URI = stringPreferencesKey("lock_sound_uri")
         val UNLOCK_SOUND_URI = stringPreferencesKey("unlock_sound_uri")
+        val FEEDBACK_SOUNDS = booleanPreferencesKey("feedback_sounds")
+        val FEEDBACK_VIBRATIONS = booleanPreferencesKey("feedback_vibrations")
+        val FEEDBACK_SPEECH = booleanPreferencesKey("feedback_speech")
         val SHOW_FREQUENT_APPS = booleanPreferencesKey("show_frequent_apps")
         val DRAWER_OPENS_AT_TOP = booleanPreferencesKey("drawer_opens_at_top")
         val SORT_DRAWER_FOLDERS = booleanPreferencesKey("sort_drawer_folders")
@@ -1018,6 +1027,7 @@ class SettingsRepository @Inject constructor(
             "show_home_folder_names", "show_drawer_folder_names", "mix_drawer_folders", "blur_behind_drawer",
             "theme_all_icons", "hide_system_navigation_bar", "folder_show_labels", "home_glass_panel",
             "weather_icon_large", "wallpaper_scroll", "hide_private_space_locked", "charging_animation",
+            "feedback_sounds", "feedback_vibrations", "feedback_speech",
         )
         val STRING_KEYS = setOf(
             "dock_favorites", "hidden_apps", "custom_labels", "drawer_folders",
