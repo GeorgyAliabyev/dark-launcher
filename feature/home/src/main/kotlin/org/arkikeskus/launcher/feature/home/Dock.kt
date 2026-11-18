@@ -52,7 +52,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import org.arkikeskus.launcher.R
 import org.arkikeskus.launcher.model.AppItem
 import org.arkikeskus.launcher.ui.DockTarget
 import org.arkikeskus.launcher.ui.DragSource

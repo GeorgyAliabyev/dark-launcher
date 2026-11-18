@@ -1007,7 +1007,7 @@ private fun DrawerFolderTile(
     var origin by remember(folder.id) { mutableStateOf(Offset.Zero) }
     val editLabel = stringResource(R.string.folder_edit)
     val openLabel = stringResource(R.string.tile_open)
-    val addLabel = stringResource(R.string.home_add)
+    val addLabel = stringResource(R.string.add_to_home)
     val addToHome = LocalAddFolderToHome.current
     Column(
         modifier = Modifier

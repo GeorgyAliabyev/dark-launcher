@@ -5,6 +5,8 @@
     <string name="remove_from_dock">Remover do dock</string>
     <string name="add_to_home">Adicionar à tela inicial</string>
     <string name="remove_from_home">Remover da tela inicial</string>
+    <string name="tile_open">Abrir</string>
+    <string name="tile_app_menu">Menu do aplicativo</string>
     <string name="app_info">Informações do app</string>
     <string name="hide_app">Ocultar app</string>
     <string name="rename">Editar</string>

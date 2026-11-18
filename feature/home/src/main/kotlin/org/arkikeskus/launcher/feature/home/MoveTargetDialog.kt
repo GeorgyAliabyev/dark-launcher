@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import org.arkikeskus.launcher.R
 
 /**
  * What the move dialog is moving: the name it goes by, where it stands now, and the call that lands it
